@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title style="color: #000;">Program do nauki fiszek</title>
+    <style>
+        body {
+            background-color: #007BFF; /* Błękitne tło */
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #gameContainer {
+            background-color: #ccc; /* Szare tło ramki */
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        button, input {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #directionButtons {
+            margin-top: 20px;
+        }
+
+        .directionButton {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .directionButton:focus {
+            outline: none;
+        }
+
+        /* Styl dla przycisków umlautów */
+        .umlautButton {
+            margin: 5px;
+            padding: 5px 10px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #fff;">Program do nauki fiszek</h1>
+    <div id="directionButtons">
+        <button class="directionButton" id="plToDe">Polski na niemiecki</button>
+        <button class="directionButton" id="deToPl">Niemiecki na polski</button>
+    </div>
+    <div id="gameContainer" style="display: none;">
+        <p id="question"></p>
+        <input type="text" id="answer" placeholder="Wpisz tłumaczenie">
+        <div>
+            <!-- Przyciski umlautów -->
+            <button class="umlautButton" onclick="addUmlaut('ä')">ä</button>
+            <button class="umlautButton" onclick="addUmlaut('Ä')">Ä</button>
+            <button class="umlautButton" onclick="addUmlaut('ö')">ö</button>
+            <button class="umlautButton" onclick="addUmlaut('Ö')">Ö</button>
+            <button class="umlautButton" onclick="addUmlaut('ü')">ü</button>
+            <button class="umlautButton" onclick="addUmlaut('Ü')">Ü</button>
+            <button class="umlautButton" onclick="addUmlaut('ß')">ß</button>
+        </div>
+        <button id="checkButton" style="background-color: #007BFF; color: #fff;">Sprawdź</button>
+        <p id="correctMessage" style="color: #008000; display: none;">Poprawnie!</p>
+        <p id="correctAnswer" style="color: #FF0000; display: none;"></p>
+    </div>
+    <div id="summary" style="display: none;">
+        <p id="score"></p>
+        <p id="time"></p>
+        <button id="playAgainButton" style="background-color: #007BFF; color: #fff;">Zagraj ponownie</button>
+    </div>
+
+    <script>
+        const slownik = {
+            "bezpośrednio": "direkt",
+            "ożenić się": "heiraten",
+            "ciepło": "warm",
+            "zimno": "kalt",
+            "torba plastikowa": "Plastiktüte",
+            "wystarczająco": "genug",
+            "rodzeństwo": "Geschwister",
+            "ciemny": "dunkel",
+            "jasny": "hell",
+            "spokojny": "ruhig",
+            "słodki": "süß",
+            "gorzki": "bitter",
+            "nudny": "langweilig",
+            "ciekawy": "interessant",
+            "smutny": "traurig",
+            "zły": "schlecht",
+            "zdenerwowany": "genervt",
+            "dorosły": "erwachsen",
+            "bezrobotny": "arbeitslos",
+            "pytanie": "Frage",
+            "tam": "dort",
+            "prawo jazdy": "Führerschein",
+            "mniej": "weniger",
+            "więcej": "mehr",
+            "39": "neununddreißig",
+            "zabronione": "verboten",
+            "niestety": "leider",
+            "warto": "es lohnt sich",
+            "nie wiem": "ich weiß nicht",
+            "miłego dnia": "einen schönen Tag noch",
+            "długopis": "Kugelschreiber",
+            "CV": "Lebenslauf",
+            "podpis": "Unterschrift",
+            "termin": "Termin",
+            "urodziny": "Geburtstag",
+            "rower": "Fahrrad",
+            // Dodaj więcej słów...
+        };
+
+        let slowa_do_nauki = [];
+        let punkty = 0;
+        let startCzas = 0;
+        let currentIndex = 0;
+        let translationDirection = "plToDe"; // Domyślnie polski na niemiecki
+        let backgroundChangeInterval;
+
+        const directionButtons = document.getElementById("directionButtons");
+        const plToDeButton = document.getElementById("plToDe");
+        const deToPlButton = document.getElementById("deToPl");
+        const gameContainer = document.getElementById("gameContainer");
+        const question = document.getElementById("question");
+        const answerInput = document.getElementById("answer");
+        const checkButton = document.getElementById("checkButton");
+        const summary = document.getElementById("summary");
+        const score = document.getElementById("score");
+        const time = document.getElementById("time");
+        const playAgainButton = document.getElementById("playAgainButton");
+        const correctMessage = document.getElementById("correctMessage");
+        const correctAnswer = document.getElementById("correctAnswer");
+
+        directionButtons.style.display = "block";
+
+        plToDeButton.addEventListener("click", () => {
+            translationDirection = "plToDe";
+            startGame();
+        });
+
+        deToPlButton.addEventListener("click", () => {
+            translationDirection = "deToPl";
+            startGame();
+        });
+
+        checkButton.addEventListener("click", () => {
+            checkAnswer();
+        });
+
+        answerInput.addEventListener("keyup", (event) => {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        });
+
+        playAgainButton.addEventListener("click", () => {
+            startGame();
+        });
+
+        function startGame() {
+            slowa_do_nauki = shuffle(Object.keys(slownik));
+            punkty = 0;
+            currentIndex = 0;
+            startCzas = new Date().getTime();
+            updateQuestion();
+            directionButtons.style.display = "none";
+            gameContainer.style.display = "block";
+            summary.style.display = "none";
+            correctMessage.style.display = "none";
+            correctAnswer.style.display = "none";
+            clearInterval(backgroundChangeInterval);
+            backgroundChangeInterval = setInterval(changeBackgroundColor, 15000);
+        }
+
+        function updateQuestion() {
+            if (currentIndex < slowa_do_nauki.length) {
+                if (translationDirection === "plToDe") {
+                    question.textContent = `Przetłumacz: ${slowa_do_nauki[currentIndex]}`;
+                } else {
+                    question.textContent = `Przetłumacz: ${slownik[slowa_do_nauki[currentIndex]]}`;
+                }
+                answerInput.value = "";
+            } else {
+                endGame();
+            }
+        }
+
+        function checkAnswer() {
+            const odpowiedz = answerInput.value.trim();
+            const slowo = slowa_do_nauki[currentIndex];
+            
+            if (translationDirection === "plToDe") {
+                if (odpowiedz.toLowerCase() === slownik[slowo].toLowerCase()) {
+                    punkty++;
+                    correctMessage.style.display = "block";
+                    correctAnswer.style.display = "none";
+                } else {
+                    correctMessage.style.display = "none";
+                    correctAnswer.style.display = "block";
+                    correctAnswer.textContent = `Poprawna odpowiedź: ${slownik[slowo]}`;
+                    slowa_do_nauki.push(slowo); // Dodaj słowo do powtórzenia
+                }
+            } else {
+                if (odpowiedz.toLowerCase() === slowo.toLowerCase()) {
+                    punkty++;
+                    correctMessage.style.display = "block";
+                    correctAnswer.style.display = "none";
+                } else {
+                    correctMessage.style.display = "none";
+                    correctAnswer.style.display = "block";
+                    correctAnswer.textContent = `Poprawna odpowiedź: ${slowo}`;
+                    slowa_do_nauki.push(slowo); // Dodaj słowo do powtórzenia
+                }
+            }
+
+            currentIndex++;
+            updateQuestion();
+        }
+
+        function endGame() {
+            const koniecCzas = new Date().getTime();
+            const czasGry = (koniecCzas - startCzas) / 1000;
+
+            score.textContent = `Liczba poprawnych odpowiedzi: ${punkty}`;
+            time.textContent = `Czas gry: ${czasGry.toFixed(2)} sekund`;
+            gameContainer.style.display = "none";
+            summary.style.display = "block";
+        }
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex, temporaryValue;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                temporaryValue = array[currentIndex];
+                array[currentIndex] = array[randomIndex];
+                array[randomIndex] = temporaryValue;
+            }
+            return array;
+        }
+
+        function changeBackgroundColor() {
+            const colors = ['#007BFF', '#FF0000', '#008000', '#FFA500', '#800080'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            document.body.style.backgroundColor = randomColor;
+        }
+
+        function addUmlaut(umlaut) {
+            const currentValue = answerInput.value;
+            answerInput.value = currentValue + umlaut;
+        }
+    </script>
+</body>
+</html>
